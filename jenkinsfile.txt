@@ -1,0 +1,26 @@
+node{
+    stage( 'continous download scm'){
+        git credentialsId: 'gitpwd', url: 'https://github.com/PSSahana/my-app.git'
+    }
+    stage('continous build'){
+        //def mvnHome = tool name: 'maven-3', type: 'maven'
+        //def mvncmd = "${mvnhome}/bin/mvn"
+        //sh "${mvncmd} clean package"
+        sh 'mvn clean package'
+    }
+    stage('build image'){
+        sh 'docker build -t kittisahana123/first-repo/image1:2.0.0 .'
+    }
+    stage('push image'){
+        withCredentials([string(credentialsId: 'dockerpwd', variable: 'dockerHubpwd')]) {
+        sh "docker login -u kittisahana123 -p ${dockerHubpwd}"
+        }
+        sh 'docker push  kittisahana123/image1:2.0.0'
+    }
+    stage('run container on dev server'){
+        def dockerRun = 'docker run -p 9090:9191 -d --name myapp kittisahana123/image1:2.0.0'
+        sshagent(['jen']) {
+         sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.8.221 ${dockerRun}"  
+         }
+    }
+}    
